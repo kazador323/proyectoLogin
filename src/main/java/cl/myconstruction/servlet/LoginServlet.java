@@ -1,14 +1,8 @@
 package cl.myconstruction.servlet;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.sql.*;
 
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.annotation.WebServlet;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
@@ -24,27 +18,32 @@ public class LoginServlet extends HttpServlet {
         String user = request.getParameter("username");
         String pass = request.getParameter("password");
 
-        try {
-            Connection con = Conexion.getConexion();
+        if(user == null || pass == null || user.isEmpty() || pass.isEmpty()){
+            response.sendRedirect("login.jsp?error=1");
+            return;
+        }
 
-            String sql = "SELECT * FROM usuarios WHERE username=? AND password=?";
-            PreparedStatement ps = con.prepareStatement(sql);
+        String sql = "SELECT * FROM usuarios WHERE username=? AND password=?";
+
+        try (Connection con = Conexion.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
             ps.setString(1, user);
             ps.setString(2, pass);
 
-            ResultSet rs = ps.executeQuery();
+            try (ResultSet rs = ps.executeQuery()) {
 
-            if (rs.next()) {
-                HttpSession session = request.getSession();
-                session.setAttribute("usuario", user);
-
-                response.sendRedirect("home.jsp");
-            } else {
-                response.sendRedirect("login.jsp?error=1");
+                if (rs.next()) {
+                    HttpSession session = request.getSession();
+                    session.setAttribute("usuario", user);
+                    response.sendRedirect("home.jsp");
+                } else {
+                    response.sendRedirect("login.jsp?error=1");
+                }
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            response.sendRedirect("login.jsp?error=2");
         }
     }
 }
